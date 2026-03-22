@@ -1,0 +1,10 @@
+numpy>=1.24,<2.0
+ray>=2.9
+gymnasium[atari,accept-ram-license]>=0.29
+ale-py>=0.8
+cython>=3.0
+tensorboard
+opencv-python>=4.8
+kornia>=0.7
+torch>=2.0
+rich>=13.0
