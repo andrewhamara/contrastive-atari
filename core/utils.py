@@ -218,6 +218,35 @@ class WarpFrame(gym.ObservationWrapper):
         return obs
 
 
+def _translate_atari_id(env_id):
+    """Translate old gym Atari IDs to gymnasium ALE IDs.
+
+    E.g. 'PongNoFrameskip-v4' -> 'ALE/Pong-v5'
+    """
+    if env_id.startswith("ALE/"):
+        return env_id  # already new format
+    # Strip 'NoFrameskip' and version suffix
+    name = env_id.replace("NoFrameskip", "").rsplit("-", 1)[0]
+    return f"ALE/{name}-v5"
+
+
+class GymnasiumCompat(gym.Wrapper):
+    """Shim: converts gymnasium 5-tuple step / 2-tuple reset back to old gym API.
+
+    This sits directly on top of the gymnasium env so all outer wrappers
+    can use the old (obs, reward, done, info) convention.
+    """
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        done = terminated or truncated
+        info['TimeLimit.truncated'] = truncated and not terminated
+        return obs, reward, done, info
+
+    def reset(self, **kwargs):
+        obs, info = self.env.reset(**kwargs)
+        return obs
+
+
 def make_atari(env_id, skip=4, max_episode_steps=None):
     """Make Atari games
     Parameters
@@ -229,8 +258,9 @@ def make_atari(env_id, skip=4, max_episode_steps=None):
     max_episode_steps: int
         max moves for an episode
     """
-    env = gym.make(env_id, render_mode=None, apply_api_compatibility=True)
-    assert 'NoFrameskip' in env.spec.id
+    ale_id = _translate_atari_id(env_id)
+    env = gym.make(ale_id, frameskip=1, render_mode=None)
+    env = GymnasiumCompat(env)
     env = NoopResetEnv(env, noop_max=30)
     env = MaxAndSkipEnv(env, skip=skip)
     if max_episode_steps is not None:
