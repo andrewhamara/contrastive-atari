@@ -394,6 +394,12 @@ class BaseConfig(object):
         self.p_mcts_num = args.p_mcts_num
         self.use_root_value = args.use_root_value
 
+        # Scale self-play actors to available CPUs
+        if getattr(args, 'num_actors', None) is not None:
+            self.num_actors = args.num_actors
+        else:
+            self.num_actors = max(1, args.num_cpus // 3)
+
         # SupCon overrides from CLI
         if getattr(args, 'supcon_coeff', None) is not None:
             self.supcon_coeff = args.supcon_coeff
